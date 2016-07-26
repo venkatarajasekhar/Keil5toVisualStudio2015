@@ -11,7 +11,7 @@ using namespace std::tr2::sys;
 using namespace tinyxml2;
 
 void createSln(string destinPath, string projectName);
-void createKeil5ProjectProps(string destinPath, string include);
+void createKeil5ProjectProps(string destinPath, string include, string define);
 void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGroup);
 void createFilters(string destinPath, vector<Groups> &itemGroup);
 void createUser(string destinPath);
@@ -147,6 +147,7 @@ int main(int argc, char *argv[])
 	string cmsisVer;
 	string devPackName;
 	string devPackVer;
+	string define;
 
 	cmsisVer = projDoc.FirstChildElement("Project")->FirstChildElement("RTE")->FirstChildElement("components")
 		->FirstChildElement("component")->FirstChildElement("package")->Attribute("version");
@@ -162,10 +163,14 @@ int main(int argc, char *argv[])
 	include += keil5InstaPath + "\\ARM\\PACK\\Keil\\" + devPackName + "\\" + devPackVer + "\\Device\\StdPeriph_Driver\\inc;";
 	include += keil5InstaPath + "\\ARM\\PACK\\Keil\\" + devPackName + "\\" + devPackVer + "\\Device\\Include;";
 
+	define = projDoc.FirstChildElement("Project")->FirstChildElement("Targets")->FirstChildElement("Target")
+		->FirstChildElement("TargetOption")->FirstChildElement("TargetArmAds")->FirstChildElement("Cads")
+		->FirstChildElement("VariousControls")->FirstChildElement("Define")->GetText();
+
 	/* 构造解决方案 */
 	cout << "生成VisualStudio2015解决方案" << endl;
 	createSln(vsSlnPath + "\\" + projName + ".sln", projName);
-	createKeil5ProjectProps(vsProjPath + "\\Keil5Project.props", include);
+	createKeil5ProjectProps(vsProjPath + "\\Keil5Project.props", include, define);
 	createVcxproj(vsProjPath + "\\" + projName + ".vcxproj", projName, itemGroup);
 	createFilters(vsProjPath + "\\" + projName + ".vcxproj.filters", itemGroup);
 	createUser(vsProjPath + "\\" + projName + ".vcxproj.user");
@@ -216,7 +221,7 @@ void createSln(string destinPath, string projectName)
 
 	sln.close();
 }
-void createKeil5ProjectProps(string destinPath, string include)
+void createKeil5ProjectProps(string destinPath, string include, string define)
 {
 	/* 构建Keil5Project.props */
 	fstream props(destinPath, ios::in | ios::out | ios::trunc);
@@ -232,6 +237,11 @@ void createKeil5ProjectProps(string destinPath, string include)
 		props << "  </PropertyGroup>" << endl;
 		props << "  <ItemDefinitionGroup />" << endl;
 		props << "  <ItemGroup />" << endl;
+		props << "  <ItemDefinitionGroup>" << endl;
+		props << "    <ClCompile>" << endl;
+		props << "      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);" << define << "</PreprocessorDefinitions>" << endl;
+		props << "    </ClCompile>" << endl;
+		props << "  </ItemDefinitionGroup>" << endl;
 		props << "</Project>" << endl;
 	}
 
