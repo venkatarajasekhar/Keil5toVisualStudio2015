@@ -163,10 +163,18 @@ int main(int argc, char *argv[])
 	include += keil5InstaPath + "\\ARM\\PACK\\Keil\\" + devPackName + "\\" + devPackVer + "\\Device\\StdPeriph_Driver\\inc;";
 	include += keil5InstaPath + "\\ARM\\PACK\\Keil\\" + devPackName + "\\" + devPackVer + "\\Device\\Include;";
 
-	define = projDoc.FirstChildElement("Project")->FirstChildElement("Targets")->FirstChildElement("Target")
+	tinyxml2::XMLElement *xmlTemp;
+	xmlTemp = projDoc.FirstChildElement("Project")->FirstChildElement("Targets")->FirstChildElement("Target")
 		->FirstChildElement("TargetOption")->FirstChildElement("TargetArmAds")->FirstChildElement("Cads")
-		->FirstChildElement("VariousControls")->FirstChildElement("Define")->GetText();
-
+		->FirstChildElement("VariousControls")->FirstChildElement("Define");
+	if (xmlTemp->FirstChildElement() != NULL)
+		define = xmlTemp->GetText();
+	for (int i = 0; i < define.size(); i++)
+	{
+		if (define[i] == '.')
+			define[i] = ';';
+	}
+	
 	/* 构造解决方案 */
 	cout << "生成VisualStudio2015解决方案" << endl;
 	createSln(vsSlnPath + "\\" + projName + ".sln", projName);
