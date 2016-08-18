@@ -1,4 +1,4 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -18,18 +18,18 @@ void createUser(string destinPath);
 
 int main(int argc, char *argv[])
 {
-	string keil5ProjPath;				// Keil5 ¹¤³ÌÂ·¾¶
-	string vsSlnPath;					// VisualStudio ·½°¸Â·¾¶
-	string vsProjPath;					// VisualStudio ¹¤³ÌÂ·¾¶
-	string projName;					// ÏîÄ¿Ãû³Æ
-	string keil5InstaPath;				// Keil5 °²×°Â·¾¶
-	string deviceName;					// Éè±¸Ãû³Æ
-	string armccInclude;				// Keil±ê×¼Í·ÎÄ¼şÂ·¾¶
+	string keil5ProjPath;				// Keil5 é¡¹ç›®å·¥ç¨‹è·¯å¾„
+	string vsSlnPath;					// VisualStudio è§£å†³æ–¹æ¡ˆè·¯å¾„
+	string vsProjPath;					// VisualStudio é¡¹ç›®å·¥ç¨‹è·¯å¾„
+	string projName;					// é¡¹ç›®å·¥ç¨‹å
+	string keil5InstaPath;				// Keil5 å®‰è£…è·¯å¾„
+	string deviceName;					// èŠ¯ç‰‡è®¾å¤‡å
+	string armccInclude;				// Keil é¡¹ç›®å·¥ç¨‹ç»„
 	vector<Groups> itemGroup;
 
 	cout << "################################Keil5toVisualStudio2015################################" << endl;
-	
-	/* ½âÎö³ÌĞò²ÎÊı */
+
+	/* ç‘™ï½†ç€½ç»‹å¬ªç°­é™å‚›æšŸ */
 	for (int i = 1; i < argc; i++)
 	{
 		if (!strcmp(argv[i], "-p"))
@@ -37,32 +37,32 @@ int main(int argc, char *argv[])
 			i++;
 			keil5ProjPath = argv[i];
 			keil5ProjPath = keil5ProjPath.substr(0, keil5ProjPath.size());
-			cout << "Keil5ÏîÄ¿Â·¾¶£º" << keil5ProjPath << endl;
+			cout << "Keil5é¡¹ç›®è·¯å¾„ï¼š" << keil5ProjPath << endl;
 		}
 		if (!strcmp(argv[i], "-k"))
 		{
 			i++;
 			keil5InstaPath = argv[i];
 			keil5InstaPath = keil5InstaPath.substr(0, keil5InstaPath.size() - 1);
-			cout << "Keil5°²×°Â·¾¶£º" << keil5InstaPath << endl;
+			cout << "Keil5å®‰è£…è·¯å¾„ï¼š" << keil5InstaPath << endl;
 		}
 		if (!strcmp(argv[i], "-d"))
 		{
 			i++;
 			deviceName = argv[i];
 			deviceName = deviceName.substr(0, deviceName.size());
-			cout << "Ğ¾Æ¬ĞÍºÅ£º" << deviceName << endl;
+			cout << "èŠ¯ç‰‡å‹å·ï¼š" << deviceName << endl;
 		}
 		if (!strcmp(argv[i], "-j"))
 		{
 			i++;
 			armccInclude = argv[i];
 			armccInclude = armccInclude.substr(0, armccInclude.size());
-			cout << "Keil±ê×¼¿âÂ·¾¶£º" << armccInclude << endl;
+			cout << "Keilæ ‡å‡†è·¯å¾„ï¼š" << armccInclude << endl;
 		}
 	}
 
-	/* ´´½¨¹¤³ÌÄ¿Â¼ */
+	/* é’æ¶˜ç¼“å®¸ãƒ§â–¼é©î†¼ç¶ */
 	int error;
 
 	projName = path(keil5ProjPath).stem().string();
@@ -73,13 +73,13 @@ int main(int argc, char *argv[])
 	switch (error)
 	{
 	case 0:
-		cout << "´´½¨VisualStudio" << endl;
+		cout << "åˆ›å»ºVisualStudioæ–‡ä»¶å¤¹" << endl;
 		break;
 	case -1:
-		cout << "´æÔÚVisualStudio" << endl;
+		cout << "å­˜åœ¨VisualStudioæ–‡ä»¶å¤¹" << endl;
 		break;
 	default:
-		cout << "´´½¨VisualStudio·¢Éú´íÎó£º" << error << endl;
+		cout << "åˆ›å»ºVisualStudioå‘ç”Ÿé”™è¯¯" << error << endl;
 		return 1;
 		break;
 	}
@@ -87,30 +87,30 @@ int main(int argc, char *argv[])
 	switch (error)
 	{
 	case 0:
-		cout << "´´½¨" << projName << endl;
+		cout << "åˆ›å»º" << projName << "æ–‡ä»¶å¤¹" << endl;
 		break;
 	case -1:
-		cout << "´æÔÚ" << projName << endl;
+		cout << "å­˜åœ¨" << projName << "æ–‡ä»¶å¤¹" << endl;
 		break;
 	default:
-		cout << "´´½¨" << projName << "·¢Éú´íÎó£º" << error << endl;
+		cout << "åˆ›å»º" << projName << "å‘ç”Ÿé”™è¯¯ï¼š" << error << endl;
 		return 2;
 		break;
 	}
 
-	/* ¶ÁÈ¡¹¤³ÌÅäÖÃ */
+	/* ç’‡è¯²å½‡å®¸ãƒ§â–¼é–°å¶‡ç–† */
 	tinyxml2::XMLDocument projDoc;
 
 	if (projDoc.LoadFile(keil5ProjPath.c_str()))
 	{
-		cout << "ÎŞ·¨¼ÓÔØKeil¹¤³ÌÅäÖÃ" << endl;
-//		cout << keil5ProjPath << endl;
+		cout << "æ— æ³•åŠ è½½Keilå·¥ç¨‹é…ç½®" << endl;
+		//		cout << keil5ProjPath << endl;
 		return 3;
 	}
 	else
 	{
-		cout << "³É¹¦¼ÓÔØKeil¹¤³ÌÅäÖÃ" << endl;
-//		cout << keil5ProjPath << endl;
+		cout << u"æˆåŠŸåŠ è½½Keilå·¥ç¨‹é…ç½®" << endl;
+		//		cout << keil5ProjPath << endl;
 	}
 
 	tinyxml2::XMLElement *xmlProject = projDoc.FirstChildElement("Project");
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 	}
 
 
-	/* ¹¹ÔìÊôĞÔ±í°üº¬Â·¾¶ */
+	/* é‹å‹¯â‚¬çŠ²ç˜é¬Ñ†ã€ƒé–å‘­æƒˆç’ºîˆšç· */
 	string include;
 	string cmsisVer;
 	string devPackName;
@@ -167,16 +167,16 @@ int main(int argc, char *argv[])
 	xmlTemp = projDoc.FirstChildElement("Project")->FirstChildElement("Targets")->FirstChildElement("Target")
 		->FirstChildElement("TargetOption")->FirstChildElement("TargetArmAds")->FirstChildElement("Cads")
 		->FirstChildElement("VariousControls")->FirstChildElement("Define");
-	if (xmlTemp->FirstChildElement() != NULL)
+	if (xmlTemp->GetText() != NULL)
 		define = xmlTemp->GetText();
 	for (int i = 0; i < define.size(); i++)
 	{
-		if (define[i] == '.')
+		if (define[i] == ',')
 			define[i] = ';';
 	}
-	
-	/* ¹¹Ôì½â¾ö·½°¸ */
-	cout << "Éú³ÉVisualStudio2015½â¾ö·½°¸" << endl;
+
+	/* é‹å‹¯â‚¬çŠºĞ’éè™«æŸŸå¦—?*/
+	cout << "é¢ç†¸åšVisualStudio2015ç‘™ï½…å–…é‚è§„î”" << endl;
 	createSln(vsSlnPath + "\\" + projName + ".sln", projName);
 	createKeil5ProjectProps(vsProjPath + "\\Keil5Project.props", include, define);
 	createVcxproj(vsProjPath + "\\" + projName + ".vcxproj", projName, itemGroup);
@@ -185,12 +185,12 @@ int main(int argc, char *argv[])
 
 	cout << vsSlnPath << endl;
 	cout << "#######################################################################################" << endl;
-//	system("pause");
+	//	system("pause");
 	return 0;
 }
 void createSln(string destinPath, string projectName)
 {
-	/* ´´½¨½â¾ö·½°¸ÎÄ¼ş */
+	/* é’æ¶˜ç¼“ç‘™ï½…å–…é‚è§„î”é‚å›¦æ¬¢ */
 	fstream sln(destinPath.c_str(), ios::in | ios::out | ios::trunc);
 
 	if (!sln.bad())
@@ -231,7 +231,7 @@ void createSln(string destinPath, string projectName)
 }
 void createKeil5ProjectProps(string destinPath, string include, string define)
 {
-	/* ¹¹½¨Keil5Project.props */
+	/* é‹å‹«ç¼“Keil5Project.props */
 	fstream props(destinPath, ios::in | ios::out | ios::trunc);
 
 	if (!props.bad())
@@ -257,7 +257,7 @@ void createKeil5ProjectProps(string destinPath, string include, string define)
 }
 void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGroup)
 {
-	/* Éú³É.vcxprojÎÄ¼ş */
+	/* é¢ç†¸åš.vcxprojé‚å›¦æ¬¢ */
 	fstream vcxproj(destinPath, ios::in | ios::out | ios::trunc);
 
 	if (!vcxproj.bad())
@@ -385,7 +385,7 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 
 	vcxproj.close();
 
-	/* ¹¹½¨.vcxprojÎÄ¼ş */
+	/* é‹å‹«ç¼“.vcxprojé‚å›¦æ¬¢ */
 	tinyxml2::XMLDocument doc;
 	tinyxml2::XMLElement *xmlItemGroup;
 	tinyxml2::XMLElement *xmlClInclude;
@@ -399,7 +399,7 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 	{
 		for (int j = 0; j < itemGroup[i].filePath.size(); j++)
 		{
-			if (path(itemGroup[i].filePath[j]).extension().string() == ".h" | 
+			if (path(itemGroup[i].filePath[j]).extension().string() == ".h" |
 				path(itemGroup[i].filePath[j]).extension().string() == ".hpp")
 			{
 				xmlClInclude = doc.NewElement("ClInclude");
@@ -430,7 +430,7 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 }
 void createFilters(string destinPath, vector<Groups> &itemGroup)
 {
-	/* Éú³É.filtersÎÄ¼ş */
+	/* é¢ç†¸åš.filtersé‚å›¦æ¬¢ */
 	fstream filters(destinPath, ios::in | ios::out | ios::trunc);
 
 	if (!filters.bad())
@@ -442,7 +442,7 @@ void createFilters(string destinPath, vector<Groups> &itemGroup)
 
 	filters.close();
 
-	/* ¹¹½¨.filtersÎÄ¼ş */
+	/* é‹å‹«ç¼“.filtersé‚å›¦æ¬¢ */
 	tinyxml2::XMLDocument doc;
 	tinyxml2::XMLElement *xmlItemGroup;
 	tinyxml2::XMLElement *xmlFilter;
