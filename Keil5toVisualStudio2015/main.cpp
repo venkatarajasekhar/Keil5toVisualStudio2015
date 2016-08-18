@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <filesystem>
+#include <Windows.h>
 #include <direct.h>
 #include "tinyxml2.h"
 #include "Groups.h"
@@ -15,6 +16,7 @@ void createKeil5ProjectProps(string destinPath, string include, string define);
 void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGroup);
 void createFilters(string destinPath, vector<Groups> &itemGroup);
 void createUser(string destinPath);
+string GBKToUTF8(const std::string& strGBK);
 
 int main(int argc, char *argv[])
 {
@@ -29,40 +31,34 @@ int main(int argc, char *argv[])
 
 	cout << "################################Keil5toVisualStudio2015################################" << endl;
 
-	/* 瑙ｆ瀽绋嬪簭鍙傛暟 */
 	for (int i = 1; i < argc; i++)
 	{
 		if (!strcmp(argv[i], "-p"))
 		{
-			i++;
-			keil5ProjPath = argv[i];
+			keil5ProjPath = argv[++i];
 			keil5ProjPath = keil5ProjPath.substr(0, keil5ProjPath.size());
 			cout << "Keil5项目路径：" << keil5ProjPath << endl;
 		}
 		if (!strcmp(argv[i], "-k"))
 		{
-			i++;
-			keil5InstaPath = argv[i];
+			keil5InstaPath = argv[++i];
 			keil5InstaPath = keil5InstaPath.substr(0, keil5InstaPath.size() - 1);
 			cout << "Keil5安装路径：" << keil5InstaPath << endl;
 		}
 		if (!strcmp(argv[i], "-d"))
 		{
-			i++;
-			deviceName = argv[i];
+			deviceName = argv[++i];
 			deviceName = deviceName.substr(0, deviceName.size());
 			cout << "芯片型号：" << deviceName << endl;
 		}
 		if (!strcmp(argv[i], "-j"))
 		{
-			i++;
-			armccInclude = argv[i];
+			armccInclude = argv[++i];
 			armccInclude = armccInclude.substr(0, armccInclude.size());
 			cout << "Keil标准路径：" << armccInclude << endl;
 		}
 	}
-
-	/* 鍒涘缓宸ョ▼鐩綍 */
+	
 	int error;
 
 	projName = path(keil5ProjPath).stem().string();
@@ -98,19 +94,18 @@ int main(int argc, char *argv[])
 		break;
 	}
 
-	/* 璇诲彇宸ョ▼閰嶇疆 */
 	tinyxml2::XMLDocument projDoc;
 
 	if (projDoc.LoadFile(keil5ProjPath.c_str()))
 	{
 		cout << "无法加载Keil工程配置" << endl;
-		//		cout << keil5ProjPath << endl;
+		//cout << keil5ProjPath << endl;
 		return 3;
 	}
 	else
 	{
-		cout << u"成功加载Keil工程配置" << endl;
-		//		cout << keil5ProjPath << endl;
+		cout << "成功加载Keil工程配置" << endl;
+		//cout << keil5ProjPath << endl;
 	}
 
 	tinyxml2::XMLElement *xmlProject = projDoc.FirstChildElement("Project");
@@ -141,8 +136,6 @@ int main(int argc, char *argv[])
 		groupsTemp.filePath.clear();
 	}
 
-
-	/* 鏋勯€犲睘鎬ц〃鍖呭惈璺緞 */
 	string include;
 	string cmsisVer;
 	string devPackName;
@@ -175,8 +168,7 @@ int main(int argc, char *argv[])
 			define[i] = ';';
 	}
 
-	/* 鏋勯€犺В鍐虫柟妗?*/
-	cout << "鐢熸垚VisualStudio2015瑙ｅ喅鏂规" << endl;
+	cout << "生成VisualStudio2015解决方案" << endl;
 	createSln(vsSlnPath + "\\" + projName + ".sln", projName);
 	createKeil5ProjectProps(vsProjPath + "\\Keil5Project.props", include, define);
 	createVcxproj(vsProjPath + "\\" + projName + ".vcxproj", projName, itemGroup);
@@ -185,12 +177,13 @@ int main(int argc, char *argv[])
 
 	cout << vsSlnPath << endl;
 	cout << "#######################################################################################" << endl;
-	//	system("pause");
+	
+	system("pause");
 	return 0;
 }
 void createSln(string destinPath, string projectName)
 {
-	/* 鍒涘缓瑙ｅ喅鏂规鏂囦欢 */
+	/* 创建 .sln 文件*/
 	fstream sln(destinPath.c_str(), ios::in | ios::out | ios::trunc);
 
 	if (!sln.bad())
@@ -201,7 +194,7 @@ void createSln(string destinPath, string projectName)
 		sln << "VisualStudioVersion = 14.0.25123.0" << endl;
 		sln << "MinimumVisualStudioVersion = 10.0.40219.1" << endl;
 		sln << "Project(\"{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}\") = \""
-			<< projectName << "\", \"" << projectName << "\\" << projectName
+			<< GBKToUTF8(projectName) << "\", \"" << GBKToUTF8(projectName) << "\\" << GBKToUTF8(projectName)
 			<< ".vcxproj\", \"{2B12F5AC-5B69-4B98-9500-48ABA0FF8E8A}" << endl;
 		sln << "EndProject" << endl;
 		sln << "Global" << endl;
@@ -231,7 +224,10 @@ void createSln(string destinPath, string projectName)
 }
 void createKeil5ProjectProps(string destinPath, string include, string define)
 {
-	/* 鏋勫缓Keil5Project.props */
+	char* pBuf = new char[include.size()];
+	include.copy(pBuf, include.size());
+	
+	/* 创建 Keil5Project.props 文件 */
 	fstream props(destinPath, ios::in | ios::out | ios::trunc);
 
 	if (!props.bad())
@@ -241,7 +237,7 @@ void createKeil5ProjectProps(string destinPath, string include, string define)
 		props << "  <ImportGroup Label=\"PropertySheets\" />" << endl;
 		props << "  <PropertyGroup Label=\"UserMacros\" />" << endl;
 		props << "  <PropertyGroup>" << endl;
-		props << "  <IncludePath>" << include << "</IncludePath>" << endl;
+		props << "  <IncludePath>" << GBKToUTF8(include) << "</IncludePath>" << endl;
 		props << "  </PropertyGroup>" << endl;
 		props << "  <ItemDefinitionGroup />" << endl;
 		props << "  <ItemGroup />" << endl;
@@ -257,7 +253,7 @@ void createKeil5ProjectProps(string destinPath, string include, string define)
 }
 void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGroup)
 {
-	/* 鐢熸垚.vcxproj鏂囦欢 */
+	/* 创建 .vcxproj 文件 */
 	fstream vcxproj(destinPath, ios::in | ios::out | ios::trunc);
 
 	if (!vcxproj.bad())
@@ -284,7 +280,7 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 		vcxproj << "  </ItemGroup>" << endl;
 		vcxproj << "  <PropertyGroup Label=\"Globals\">" << endl;
 		vcxproj << "    <ProjectGuid>{2B12F5AC-5B69-4B98-9500-48ABA0FF8E8A}</ProjectGuid>" << endl;
-		vcxproj << "    <RootNamespace>" << projectName << "</RootNamespace>" << endl;
+		vcxproj << "    <RootNamespace>" << GBKToUTF8(projectName) << "</RootNamespace>" << endl;
 		vcxproj << "    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>" << endl;
 		vcxproj << "  </PropertyGroup>" << endl;
 		vcxproj << "  <Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />" << endl;
@@ -385,7 +381,6 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 
 	vcxproj.close();
 
-	/* 鏋勫缓.vcxproj鏂囦欢 */
 	tinyxml2::XMLDocument doc;
 	tinyxml2::XMLElement *xmlItemGroup;
 	tinyxml2::XMLElement *xmlClInclude;
@@ -394,7 +389,7 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 	doc.LoadFile(destinPath.c_str());
 
 	xmlItemGroup = doc.NewElement("ItemGroup");
-	doc.FirstChildElement("Project");
+	doc.FirstChildElement("Project")->InsertEndChild(xmlItemGroup);
 	for (int i = 0; i < itemGroup.size(); i++)
 	{
 		for (int j = 0; j < itemGroup[i].filePath.size(); j++)
@@ -403,7 +398,7 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 				path(itemGroup[i].filePath[j]).extension().string() == ".hpp")
 			{
 				xmlClInclude = doc.NewElement("ClInclude");
-				xmlClInclude->SetAttribute("Include", itemGroup[i].filePath[j].c_str());
+				xmlClInclude->SetAttribute("Include", GBKToUTF8(itemGroup[i].filePath[j]).c_str());
 				xmlItemGroup->InsertEndChild(xmlClInclude);
 			}
 		}
@@ -420,7 +415,7 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 				path(itemGroup[i].filePath[j]).extension().string() == ".s")
 			{
 				xmlClCompile = doc.NewElement("ClCompile");
-				xmlClCompile->SetAttribute("Include", itemGroup[i].filePath[j].c_str());
+				xmlClCompile->SetAttribute("Include", GBKToUTF8(itemGroup[i].filePath[j]).c_str());
 				xmlItemGroup->InsertEndChild(xmlClCompile);
 			}
 		}
@@ -430,7 +425,7 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 }
 void createFilters(string destinPath, vector<Groups> &itemGroup)
 {
-	/* 鐢熸垚.filters鏂囦欢 */
+	/* 创建 .filters 文件 */
 	fstream filters(destinPath, ios::in | ios::out | ios::trunc);
 
 	if (!filters.bad())
@@ -442,7 +437,7 @@ void createFilters(string destinPath, vector<Groups> &itemGroup)
 
 	filters.close();
 
-	/* 鏋勫缓.filters鏂囦欢 */
+	/* .filters */
 	tinyxml2::XMLDocument doc;
 	tinyxml2::XMLElement *xmlItemGroup;
 	tinyxml2::XMLElement *xmlFilter;
@@ -458,7 +453,7 @@ void createFilters(string destinPath, vector<Groups> &itemGroup)
 		for (int i = 0; i < itemGroup.size(); i++)
 		{
 			xmlFilter = doc.NewElement("Filter");
-			xmlFilter->SetAttribute("Include", itemGroup[i].groupName.c_str());
+			xmlFilter->SetAttribute("Include", GBKToUTF8(itemGroup[i].groupName).c_str());
 			xmlItemGroup->InsertEndChild(xmlFilter);
 		}
 
@@ -472,10 +467,10 @@ void createFilters(string destinPath, vector<Groups> &itemGroup)
 					path(itemGroup[i].filePath[j]).extension().string() == ".hpp")
 				{
 					xmlClInclude = doc.NewElement("ClInclude");
-					xmlClInclude->SetAttribute("Include", itemGroup[i].filePath[j].c_str());
+					xmlClInclude->SetAttribute("Include", GBKToUTF8(itemGroup[i].filePath[j]).c_str());
 					xmlItemGroup->InsertEndChild(xmlClInclude);
 					xmlFilter = doc.NewElement("Filter");
-					xmlFilter->SetText(itemGroup[i].groupName.c_str());
+					xmlFilter->SetText(GBKToUTF8(itemGroup[i].groupName).c_str());
 					xmlClInclude->InsertEndChild(xmlFilter);
 				}
 			}
@@ -492,10 +487,10 @@ void createFilters(string destinPath, vector<Groups> &itemGroup)
 					path(itemGroup[i].filePath[j]).extension().string() == ".s")
 				{
 					xmlClCompile = doc.NewElement("ClCompile");
-					xmlClCompile->SetAttribute("Include", itemGroup[i].filePath[j].c_str());
+					xmlClCompile->SetAttribute("Include", GBKToUTF8(itemGroup[i].filePath[j]).c_str());
 					xmlItemGroup->InsertEndChild(xmlClCompile);
 					xmlFilter = doc.NewElement("Filter");
-					xmlFilter->SetText(itemGroup[i].groupName.c_str());
+					xmlFilter->SetText(GBKToUTF8(itemGroup[i].groupName).c_str());
 					xmlClCompile->InsertEndChild(xmlFilter);
 				}
 			}
@@ -506,6 +501,7 @@ void createFilters(string destinPath, vector<Groups> &itemGroup)
 }
 void createUser(string destinPath)
 {
+	/*创建 .user 文件 */
 	fstream user(destinPath, ios::in | ios::out | ios::trunc);
 
 	if (!user.bad())
@@ -517,4 +513,22 @@ void createUser(string destinPath)
 	}
 
 	user.close();
+}
+
+string GBKToUTF8(const std::string& strGBK)
+{
+	string strUTF8 = "";
+	wchar_t *str1;
+	int n = MultiByteToWideChar(CP_ACP, 0, strGBK.c_str(), -1, NULL, 0);
+	str1 = new wchar_t[n];
+	MultiByteToWideChar(CP_ACP, 0, strGBK.c_str(), -1, str1, n);
+	n = WideCharToMultiByte(CP_UTF8, 0, str1, -1, NULL, 0, NULL, NULL);
+	char * str2 = new char[n];
+	WideCharToMultiByte(CP_UTF8, 0, str1, -1, str2, n, NULL, NULL);
+	strUTF8 = str2;
+	delete[]str1;
+	str1 = NULL;
+	delete[]str2;
+	str2 = NULL;
+	return strUTF8;
 }
