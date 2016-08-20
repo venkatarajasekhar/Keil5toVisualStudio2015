@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 	cout << vsSlnPath << endl;
 	cout << "#######################################################################################" << endl;
 	
-	system("pause");
+//	system("pause");
 	return 0;
 }
 void createSln(string destinPath, string projectName)
