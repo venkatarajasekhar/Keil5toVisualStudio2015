@@ -7,43 +7,47 @@
 #include <direct.h>
 #include "tinyxml2.h"
 #include "Groups.h"
+
 using namespace std;
 using namespace std::tr2::sys;
 using namespace tinyxml2;
 
+string keilProjPath;				// Keil 项目工程路径
+string vsSlnPath;					// VisualStudio 解决方案路径
+string vsProjPath;					// VisualStudio 项目工程路径
+string projName;					// 项目工程名
+string keilInstaPath;				// Keil 安装路径
+string deviceName;					// 芯片设备名
+string incPath;				// Keil 项目工程组
+
 void createSln(string destinPath, string projectName);
-void createKeil5ProjectProps(string destinPath, string include, string define);
+void createKeilProjectProps(string destinPath, string include, string define);
 void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGroup);
 void createFilters(string destinPath, vector<Groups> &itemGroup);
 void createUser(string destinPath);
 string GBKToUTF8(const std::string& strGBK);
 
+void schemaVersion1_1(void);
+void schemaVersion2_1(void);
+
 int main(int argc, char *argv[])
 {
-	string keil5ProjPath;				// Keil5 项目工程路径
-	string vsSlnPath;					// VisualStudio 解决方案路径
-	string vsProjPath;					// VisualStudio 项目工程路径
-	string projName;					// 项目工程名
-	string keil5InstaPath;				// Keil5 安装路径
-	string deviceName;					// 芯片设备名
-	string armccInclude;				// Keil 项目工程组
-	vector<Groups> itemGroup;
+	cout << "################################KeiltoVisualStudio2015################################" << endl;
 
-	cout << "################################Keil5toVisualStudio2015################################" << endl;
-
+	/* 解析Keil传递参数 */
 	for (int i = 1; i < argc; i++)
 	{
 		if (!strcmp(argv[i], "-p"))
 		{
-			keil5ProjPath = argv[++i];
-			keil5ProjPath = keil5ProjPath.substr(0, keil5ProjPath.size());
-			cout << "Keil5项目路径：" << keil5ProjPath << endl;
+			keilProjPath = argv[++i];
+			keilProjPath = keilProjPath.substr(0, keilProjPath.size());
+			cout << "Keil5项目路径：" << keilProjPath << endl;
 		}
 		if (!strcmp(argv[i], "-k"))
 		{
-			keil5InstaPath = argv[++i];
-			keil5InstaPath = keil5InstaPath.substr(0, keil5InstaPath.size() - 1);
-			cout << "Keil5安装路径：" << keil5InstaPath << endl;
+			keilInstaPath = argv[++i];
+			keilInstaPath = keilInstaPath.substr(0, keilInstaPath.size() - 1);
+			cout << "Keil5安装路径：" << keilInstaPath << endl;
 		}
 		if (!strcmp(argv[i], "-d"))
 		{
@@ -53,16 +57,16 @@ int main(int argc, char *argv[])
 		}
 		if (!strcmp(argv[i], "-j"))
 		{
-			armccInclude = argv[++i];
-			armccInclude = armccInclude.substr(0, armccInclude.size());
-			cout << "Keil标准路径：" << armccInclude << endl;
+			incPath = argv[++i];
+			incPath = incPath.substr(0, incPath.size());
+			cout << "Keil库路径：" << incPath << endl;
 		}
 	}
-	
+	/* 创建VisualStudio工程存放文件夹 */
 	int error;
 
-	projName = path(keil5ProjPath).stem().string();
-	vsSlnPath = path(keil5ProjPath).parent_path().string() + "\\VisualStudio";
+	projName = path(keilProjPath).stem().string();
+	vsSlnPath = path(keilProjPath).parent_path().string() + "\\VisualStudio";
 	vsProjPath = vsSlnPath + "\\" + projName;
 
 	error = _mkdir(vsSlnPath.c_str());
@@ -93,94 +97,37 @@ int main(int argc, char *argv[])
 		return 2;
 		break;
 	}
-
+	/* 解析Keil配置版本 */
 	tinyxml2::XMLDocument projDoc;
 
-	if (projDoc.LoadFile(keil5ProjPath.c_str()))
+	if (projDoc.LoadFile(keilProjPath.c_str()))
 	{
 		cout << "无法加载Keil工程配置" << endl;
-		//cout << keil5ProjPath << endl;
 		return 3;
 	}
 	else
 	{
 		cout << "成功加载Keil工程配置" << endl;
-		//cout << keil5ProjPath << endl;
 	}
 
-	tinyxml2::XMLElement *xmlProject = projDoc.FirstChildElement("Project");
-	tinyxml2::XMLElement *xmlTaggets = xmlProject->FirstChildElement("Targets");
-	tinyxml2::XMLElement *xmlTarget = xmlTaggets->FirstChildElement("Target");
-	tinyxml2::XMLElement *xmlGroups = xmlTarget->FirstChildElement("Groups");
-	tinyxml2::XMLElement *xmlGroupTemp = xmlGroups->FirstChildElement("Group");
-	tinyxml2::XMLElement *xmlFileTemp;
-
-	Groups groupsTemp;
-	for (int i = 0; xmlGroupTemp != NULL; i++)
+	string schemaVersion;
+	schemaVersion = projDoc.FirstChildElement("Project")->FirstChildElement("SchemaVersion")->GetText();
+	if (schemaVersion == "1.1")
 	{
-		groupsTemp.groupName = xmlGroupTemp->FirstChildElement("GroupName")->GetText();
-		xmlFileTemp = xmlGroupTemp->FirstChildElement("Files");
-		if (xmlFileTemp)
-		{
-			xmlFileTemp = xmlFileTemp->FirstChildElement("File");
-		}
-
-		for (int j = 0; xmlFileTemp != NULL; j++)
-		{
-			groupsTemp.filePath.insert(groupsTemp.filePath.begin() + j, string("..\\.") + xmlFileTemp->FirstChildElement("FilePath")->GetText());
-			xmlFileTemp = xmlFileTemp->NextSiblingElement();
-
-		}
-		itemGroup.insert(itemGroup.begin() + i, groupsTemp);
-		xmlGroupTemp = xmlGroupTemp->NextSiblingElement();
-		groupsTemp.filePath.clear();
+		schemaVersion1_1();
 	}
-
-	string include;
-	string cmsisVer;
-	string devPackName;
-	string devPackVer;
-	string define;
-
-	cmsisVer = projDoc.FirstChildElement("Project")->FirstChildElement("RTE")->FirstChildElement("components")
-		->FirstChildElement("component")->FirstChildElement("package")->Attribute("version");
-	devPackName = projDoc.FirstChildElement("Project")->FirstChildElement("RTE")->FirstChildElement("files")
-		->FirstChildElement("file")->FirstChildElement("package")->Attribute("name");
-	devPackVer = projDoc.FirstChildElement("Project")->FirstChildElement("RTE")->FirstChildElement("files")
-		->FirstChildElement("file")->FirstChildElement("package")->Attribute("version");
-
-	include += path(keil5ProjPath).parent_path().string() + "\\RTE;";
-	include += path(keil5ProjPath).parent_path().string() + "\\RTE\\Device\\" + deviceName + ";";
-	include += armccInclude + ";";
-	include += keil5InstaPath + "\\ARM\\PACK\\ARM\\CMSIS\\" + cmsisVer + "\\CMSIS\\Include;";
-	include += keil5InstaPath + "\\ARM\\PACK\\Keil\\" + devPackName + "\\" + devPackVer + "\\Device\\StdPeriph_Driver\\inc;";
-	include += keil5InstaPath + "\\ARM\\PACK\\Keil\\" + devPackName + "\\" + devPackVer + "\\Device\\Include;";
-
-	tinyxml2::XMLElement *xmlTemp;
-	xmlTemp = projDoc.FirstChildElement("Project")->FirstChildElement("Targets")->FirstChildElement("Target")
-		->FirstChildElement("TargetOption")->FirstChildElement("TargetArmAds")->FirstChildElement("Cads")
-		->FirstChildElement("VariousControls")->FirstChildElement("Define");
-	if (xmlTemp->GetText() != NULL)
-		define = xmlTemp->GetText();
-	for (int i = 0; i < define.size(); i++)
+	if (schemaVersion == "2.1")
 	{
-		if (define[i] == ',')
-			define[i] = ';';
+		schemaVersion2_1();
 	}
 
-	cout << "生成VisualStudio2015解决方案" << endl;
-	createSln(vsSlnPath + "\\" + projName + ".sln", projName);
-	createKeil5ProjectProps(vsProjPath + "\\Keil5Project.props", include, define);
-	createVcxproj(vsProjPath + "\\" + projName + ".vcxproj", projName, itemGroup);
-	createFilters(vsProjPath + "\\" + projName + ".vcxproj.filters", itemGroup);
-	createUser(vsProjPath + "\\" + projName + ".vcxproj.user");
-
-	cout << vsSlnPath << endl;
-	cout << "#######################################################################################" << endl;
+	cout << "解决方案路径：" << vsSlnPath << endl;
+	cout << "######################################################################################" << endl;
 	
-//	system("pause");
+	system("pause");
 	return 0;
 }
+
 void createSln(string destinPath, string projectName)
 {
 	/* 创建 .sln 文件*/
@@ -222,11 +169,12 @@ void createSln(string destinPath, string projectName)
 
 	sln.close();
 }
-void createKeil5ProjectProps(string destinPath, string include, string define)
+
+void createKeilProjectProps(string destinPath, string include, string define)
 {
 	char* pBuf = new char[include.size()];
 	include.copy(pBuf, include.size());
-	
+
 	/* 创建 Keil5Project.props 文件 */
 	fstream props(destinPath, ios::in | ios::out | ios::trunc);
 
@@ -251,6 +199,7 @@ void createKeil5ProjectProps(string destinPath, string include, string define)
 
 	props.close();
 }
+
 void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGroup)
 {
 	/* 创建 .vcxproj 文件 */
@@ -423,6 +372,7 @@ void createVcxproj(string destinPath, string projectName, vector<Groups> &itemGr
 
 	doc.SaveFile(destinPath.c_str(), false);
 }
+
 void createFilters(string destinPath, vector<Groups> &itemGroup)
 {
 	/* 创建 .filters 文件 */
@@ -499,6 +449,7 @@ void createFilters(string destinPath, vector<Groups> &itemGroup)
 
 	doc.SaveFile(destinPath.c_str(), false);
 }
+
 void createUser(string destinPath)
 {
 	/*创建 .user 文件 */
@@ -531,4 +482,146 @@ string GBKToUTF8(const std::string& strGBK)
 	delete[]str2;
 	str2 = NULL;
 	return strUTF8;
+}
+
+void schemaVersion1_1(void)
+{
+	tinyxml2::XMLDocument projDoc;
+	projDoc.LoadFile(keilProjPath.c_str());
+
+	vector<Groups> itemGroup;
+	tinyxml2::XMLElement *xmlProject = projDoc.FirstChildElement("Project");
+	tinyxml2::XMLElement *xmlTaggets = xmlProject->FirstChildElement("Targets");
+	tinyxml2::XMLElement *xmlTarget = xmlTaggets->FirstChildElement("Target");
+	tinyxml2::XMLElement *xmlGroups = xmlTarget->FirstChildElement("Groups");
+	tinyxml2::XMLElement *xmlGroupTemp = xmlGroups->FirstChildElement("Group");
+	tinyxml2::XMLElement *xmlFileTemp;
+
+	Groups groupsTemp;
+	for (int i = 0; xmlGroupTemp != NULL; i++)
+	{
+		groupsTemp.groupName = xmlGroupTemp->FirstChildElement("GroupName")->GetText();
+		xmlFileTemp = xmlGroupTemp->FirstChildElement("Files");
+		if (xmlFileTemp)
+		{
+			xmlFileTemp = xmlFileTemp->FirstChildElement("File");
+		}
+
+		for (int j = 0; xmlFileTemp != NULL; j++)
+		{
+			groupsTemp.filePath.insert(groupsTemp.filePath.begin() + j, string("..\\.") + xmlFileTemp->FirstChildElement("FilePath")->GetText());
+			xmlFileTemp = xmlFileTemp->NextSiblingElement();
+
+		}
+		itemGroup.insert(itemGroup.begin() + i, groupsTemp);
+		xmlGroupTemp = xmlGroupTemp->NextSiblingElement();
+		groupsTemp.filePath.clear();
+	}
+
+	string include;
+	string define;
+	string vendor;
+	
+	vendor = projDoc.FirstChildElement("Project")->FirstChildElement("Targets")->FirstChildElement("Target")
+		->FirstChildElement("TargetOption")->FirstChildElement("TargetCommonOption")->FirstChildElement("Vendor")
+		->GetText();
+
+	include += incPath + ";";
+	include += incPath + "\\" + vendor + ";";
+
+	tinyxml2::XMLElement *xmlTemp;
+	xmlTemp = projDoc.FirstChildElement("Project")->FirstChildElement("Targets")->FirstChildElement("Target")
+		->FirstChildElement("TargetOption")->FirstChildElement("Target51")->FirstChildElement("C51")
+		->FirstChildElement("VariousControls")->FirstChildElement("Define");
+	
+	if (xmlTemp->GetText() != NULL)
+		define = xmlTemp->GetText();
+	
+	for (int i = 0; i < define.size(); i++)
+	{
+		if (define[i] == ',')
+			define[i] = ';';
+	}
+	define = "interrupt;sbit;sfr";
+
+	cout << "生成VisualStudio2015解决方案" << endl;
+	createSln(vsSlnPath + "\\" + projName + ".sln", projName);
+	createKeilProjectProps(vsProjPath + "\\Keil5Project.props", include, define);
+	createVcxproj(vsProjPath + "\\" + projName + ".vcxproj", projName, itemGroup);
+	createFilters(vsProjPath + "\\" + projName + ".vcxproj.filters", itemGroup);
+	createUser(vsProjPath + "\\" + projName + ".vcxproj.user");
+}
+
+void schemaVersion2_1(void)
+{
+	tinyxml2::XMLDocument projDoc;
+	projDoc.LoadFile(keilProjPath.c_str());
+
+	vector<Groups> itemGroup;
+	tinyxml2::XMLElement *xmlProject = projDoc.FirstChildElement("Project");
+	tinyxml2::XMLElement *xmlTaggets = xmlProject->FirstChildElement("Targets");
+	tinyxml2::XMLElement *xmlTarget = xmlTaggets->FirstChildElement("Target");
+	tinyxml2::XMLElement *xmlGroups = xmlTarget->FirstChildElement("Groups");
+	tinyxml2::XMLElement *xmlGroupTemp = xmlGroups->FirstChildElement("Group");
+	tinyxml2::XMLElement *xmlFileTemp;
+
+	Groups groupsTemp;
+	for (int i = 0; xmlGroupTemp != NULL; i++)
+	{
+		groupsTemp.groupName = xmlGroupTemp->FirstChildElement("GroupName")->GetText();
+		xmlFileTemp = xmlGroupTemp->FirstChildElement("Files");
+		if (xmlFileTemp)
+		{
+			xmlFileTemp = xmlFileTemp->FirstChildElement("File");
+		}
+
+		for (int j = 0; xmlFileTemp != NULL; j++)
+		{
+			groupsTemp.filePath.insert(groupsTemp.filePath.begin() + j, string("..\\.") + xmlFileTemp->FirstChildElement("FilePath")->GetText());
+			xmlFileTemp = xmlFileTemp->NextSiblingElement();
+
+		}
+		itemGroup.insert(itemGroup.begin() + i, groupsTemp);
+		xmlGroupTemp = xmlGroupTemp->NextSiblingElement();
+		groupsTemp.filePath.clear();
+	}
+
+	string include;
+	string cmsisVer;
+	string devPackName;
+	string devPackVer;
+	string define;
+
+	cmsisVer = projDoc.FirstChildElement("Project")->FirstChildElement("RTE")->FirstChildElement("components")
+		->FirstChildElement("component")->FirstChildElement("package")->Attribute("version");
+	devPackName = projDoc.FirstChildElement("Project")->FirstChildElement("RTE")->FirstChildElement("files")
+		->FirstChildElement("file")->FirstChildElement("package")->Attribute("name");
+	devPackVer = projDoc.FirstChildElement("Project")->FirstChildElement("RTE")->FirstChildElement("files")
+		->FirstChildElement("file")->FirstChildElement("package")->Attribute("version");
+
+	include += path(keilProjPath).parent_path().string() + "\\RTE;";
+	include += path(keilProjPath).parent_path().string() + "\\RTE\\Device\\" + deviceName + ";";
+	include += incPath + ";";
+	include += keilInstaPath + "\\ARM\\PACK\\ARM\\CMSIS\\" + cmsisVer + "\\CMSIS\\Include;";
+	include += keilInstaPath + "\\ARM\\PACK\\Keil\\" + devPackName + "\\" + devPackVer + "\\Device\\StdPeriph_Driver\\inc;";
+	include += keilInstaPath + "\\ARM\\PACK\\Keil\\" + devPackName + "\\" + devPackVer + "\\Device\\Include;";
+
+	tinyxml2::XMLElement *xmlTemp;
+	xmlTemp = projDoc.FirstChildElement("Project")->FirstChildElement("Targets")->FirstChildElement("Target")
+		->FirstChildElement("TargetOption")->FirstChildElement("TargetArmAds")->FirstChildElement("Cads")
+		->FirstChildElement("VariousControls")->FirstChildElement("Define");
+	if (xmlTemp->GetText() != NULL)
+		define = xmlTemp->GetText();
+	for (int i = 0; i < define.size(); i++)
+	{
+		if (define[i] == ',')
+			define[i] = ';';
+	}
+
+	cout << "生成VisualStudio2015解决方案" << endl;
+	createSln(vsSlnPath + "\\" + projName + ".sln", projName);
+	createKeilProjectProps(vsProjPath + "\\Keil5Project.props", include, define);
+	createVcxproj(vsProjPath + "\\" + projName + ".vcxproj", projName, itemGroup);
+	createFilters(vsProjPath + "\\" + projName + ".vcxproj.filters", itemGroup);
+	createUser(vsProjPath + "\\" + projName + ".vcxproj.user");
 }
